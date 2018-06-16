@@ -5,9 +5,9 @@ c---------------------------------------------------------------------
 c                            Constants
 c---------------------------------------------------------------------
 
-c       implicit double precision (a-z) 
-c       parameter( pi = 3.14159265359d0 )
-c       parameter( Rsun = 69.57d9 ) !cm
+       implicit double precision (a-z) 
+       parameter( pi = 3.14159265359d0 )
+       parameter( Rsun = 69.57d9 ) !cm
        parameter( CG = 6.67259d-8 ) !gravitational constant, cgs
        parameter( CMASS_EARTH = 5.972d27) !mass of earth, g
        parameter( CRADIUS_EARTH = 637.1d6 ) !radius of earth, cm
@@ -50,7 +50,7 @@ c---------------------------------------------------------------------
 c                          Common Blocks
 c--------------------------------------------------------------------- 
 
-
+      common/constants/pi,Rsun
 
 c---------------------------------------------------------------------
 c                        Reading Input File
@@ -115,10 +115,3 @@ c---------------------------------------------------------------------
        cs = sqrt(G*boltz*ava*T/M)
        return
        end
-
-       subroutine fBparker(theta,pi,Rss,r2,Bs0,phi2,,Bx,By,Bz) 
-
-
-
-
-
