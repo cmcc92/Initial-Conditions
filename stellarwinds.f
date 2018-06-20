@@ -1,5 +1,5 @@
 
-       program Filecreater
+       program StellarWinds
 
 c---------------------------------------------------------------------
 c                            Constants
