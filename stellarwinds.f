@@ -116,8 +116,11 @@ c---------------------------------------------------------------------
        return
        end
 
-       subroutine fBparker(theta,pi,Rss,r2,Bs0,phi2,,Bx,By,Bz) 
-
+       subroutine Parker(theta,pi,Rss,r2,Bs0,phi2,,Bx,By,Bz) 
+       double precision
+       parker = 1.0
+       return
+       end
 
 
 
