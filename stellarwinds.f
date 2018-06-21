@@ -1,69 +1,70 @@
 
        program StellarWinds
-
-c---------------------------------------------------------------------
-c                            Constants
-c---------------------------------------------------------------------
-
-c       implicit double precision (a-z) 
-c       parameter( pi = 3.14159265359d0 )
-c       parameter( Rsun = 69.57d9 ) !cm
-       parameter( CG = 6.67259d-8 ) !gravitational constant, cgs
-       parameter( CMASS_EARTH = 5.972d27) !mass of earth, g
-       parameter( CRADIUS_EARTH = 637.1d6 ) !radius of earth, cm
-       parameter( CMP = 1.6726219d-24 ) !mass of proton, grams
-       parameter( rplanet = 9556.5d0 ) !km
-       parameter( r = 1.0d0)  !AU
-       parameter( phi = 0.0d0 ) !degree
-       parameter( Mdot = 4.0d-10 ) !solarmass/year
-       parameter( gama = 1.6666d0 ) !gamma
-       parameter( temp_sw = 10.0d6 ) !temp of stellar wind, k 
-       parameter( temp_p = 282.0d0 ) !temp of planet, K
-       parameter( C_boltz = 1.3806d-16 ) !#cgs
-       parameter( C_ava = 6.022d23 ) !number/mol
-       parameter( molar_mars = 43.34d0 ) !g/mol
-
-c--------------------------------------------------------------------- 
-c                       Conversion Constants
-c--------------------------------------------------------------------- 
-
-       parameter( CSOLARMASS_GRAM = 2.0d33 ) !solar mass to gram
-       parameter( CYEAR_SEC = 365.25d0*24*3600 ) !year to second
-       parameter( CKM_CM = 1000.0d0*100 ) !km to cm
-       parameter( CAU_CM = 1.496d13 ) !AU to cm
-       parameter( CCM_KM = 1.0d0/CKM_CM ) !cm to km
-       parameter( CG_KG = 0.001 ) !gram to kg
-
-c---------------------------------------------------------------------
-c                           Ionosphere
-c---------------------------------------------------------------------
-
-       parameter( chap_layer = 61.2*100*1000 ) !cm (from km)
-       parameter( co_2 = 44.0 ) !amu/q
-       parameter( o_2 = 32.0 ) !amu/q
-       parameter( nco2 = 4.0E5 ) !cm-3
-       parameter( no2 = 3.6E6 ) !cm-3
-       parameter( mco2 = 7.3E-23 ) !g
-       parameter( mo2 = 5.3E-23 ) !g
+       
+       implicit double precision (a-z)
 
 c--------------------------------------------------------------------- 
 c                          Common Blocks
 c--------------------------------------------------------------------- 
-
-
+       common/velocitycomm/gama,C_boltz,C_ava       
+       common/parkercomm/pi,Rss,r2,omega,phi
 
 c---------------------------------------------------------------------
 c                        Reading Input File
 c---------------------------------------------------------------------
 
-       open(unit=11,file='initialinput2',status='old')
+       open(unit=11,file='example.in',status='old')
        rewind 11
 
        read (11,*) num
        read (11,*) vr
-       read (11,*) theta
+       read (11,*) orbit_theta
        read (11,*) n0
        read (11,*) Bs0
+
+c---------------------------------------------------------------------
+c                            Constants
+c---------------------------------------------------------------------
+
+       pi = 3.14159265359d0
+       Rsun = 69.57d9 !cm
+       CG = 6.67259d-8 !gravitational constant, cgs
+       CMASS_EARTH = 5.972d27 !mass of earth, g
+       CRADIUS_EARTH = 637.1d6 !radius of earth, cm
+       CMP = 1.6726219d-24 !mass of proton, grams
+       rplanet = 9556.5d0 !km
+       r = 1.0d0 !AU
+       phi = 0.0d0 !degree
+       Mdot = 4.0d-10 !solarmass/year
+       temp_sw = 10.0d6 !temp of stellar wind, k 
+       temp_p = 282.0d0 !temp of planet, K
+       molar_mars = 43.34d0 !g/mol
+       gama = 1.6666d0
+       C_boltz = 1.3806d-16 !cgs
+       C_ava = 6.022d23 !number/mol
+
+c--------------------------------------------------------------------- 
+c                       Conversion Constants
+c--------------------------------------------------------------------- 
+
+       CSOLARMASS_GRAM = 2.0d33 !solar mass to gram
+       CYEAR_SEC = 365.25d0*24*3600 !year to second
+       CKM_CM = 1000.0d0*100 !km to cm
+       CAU_CM = 1.496d13 !AU to cm
+       CCM_KM = 1.0d0/CKM_CM !cm to km
+       CG_KG = 0.001 !gram to kg
+
+c---------------------------------------------------------------------
+c                           Ionosphere
+c---------------------------------------------------------------------
+
+       chap_layer = 61.2*100*1000 !cm (from km)
+       co_2 = 44.0 !amu/q
+       o_2 = 32.0 !amu/q
+       nco2 = 4.0E5 !cm-3
+       no2 = 3.6E6 !cm-3
+       mco2 = 7.3E-23 !g
+       mo2 = 5.3E-23 !g
 
 c---------------------------------------------------------------------
 c                 Initial Conversion Calculations
@@ -78,49 +79,69 @@ c---------------------------------------------------------------------
        Mdot2 = Mdot*CSOLARMASS_GRAM/CYEAR_SEC !gram/s
        vrcgs = vr*CKM_CM !cm/s
        phi2 = phi*pi/180.0
-       Omega = 0.44/(24*3600) !s^-1
-       rho = nco2*mco2 + no2*mo2
+       omega = 0.44/(24*3600) !s^-1
+       planet_rho = nco2*mco2 + no2*mo2
        molarP = CMP*C_ava
        molar_atmosphere = molar_mars
        
-       call v_sound(temp_sw,molar_mars,gama,C_boltz,C_ava,cs) 
+c---------------------------------------------------------------------
+c                         Calling Functions
+c---------------------------------------------------------------------
+
+       call v_sound(temp_sw,molarP,cs) 
        
        cs_sw = cs
 
-       call v_sound(temp_p,molar_mars,gama,C_boltz,C_ava,cs)
+       call v_sound(temp_p,molar_mars,cs)
 
        cs_p = cs
 
+       call parker(orbit_theta,vrcgs,Bs0,Bx2,By2,Bz2)
+       
+       Btot = sqrt(Bx2**2.0+By2**2.0+Bz2**2.0)
 c---------------------------------------------------------------------
-c                        Print Statements
+c                          Print Statements
 c---------------------------------------------------------------------
 
-       print*, num
-       print*, vr
-       print*, theta
-       print*, n0
-       print*, Bs0
        print*, cs_sw
        print*, cs_p
+       print*, Btot
 
        stop
        end
 
 c---------------------------------------------------------------------
-c                       Functions
+c                             Functions
 c---------------------------------------------------------------------
        
-       subroutine v_sound(T,M,G,boltz,ava,cs)
-       double precision T,M,G,boltz,ava,cs
-       cs = sqrt(G*boltz*ava*T/M)
+       subroutine v_sound(t,m,cs)
+       implicit double precision (a-z)        
+       common/velocitycomm/gama,C_boltz,C_ava
+       cs = sqrt(gama*C_boltz*C_ava*t/m)
        return
        end
 
-       subroutine Parker(theta,pi,Rss,r2,Bs0,phi2,,Bx,By,Bz) 
-       double precision
-       parker = 1.0
+       subroutine parker(theta,v,B,Bx2,By2,Bz2)
+       implicit double precision (a-z)
+       common/parkercomm/pi,Rss,r2,omega,phi
+       alpha = (90.0-theta)*pi/180.0
+       theta2 = theta*pi/180.0 !convert to radians
+       Br = B*(Rss/r)**2.0
+       Bphi = (B(Rss/r2)**2.0*(r2-Rss))*omega*sin(theta2)/v
+       Bx = Br*sin(theta2)*cos(phi)-(Bphi*sin(phi))
+       By = Br*sin(theta2)*sin(phi)-(Bphi*cos(phi))
+       Bz = Br*cos(theta2)
+       alpha2 = -alpha
+       Bx2 = cos(alpha2)*Bx-sin(alpha2)Bz
+       By2 = By
+       Bz2 = sin(alpha2)*Bx2+cos(alpha2)*Bz
        return
        end
+
+
+
+
+
 
 
 
