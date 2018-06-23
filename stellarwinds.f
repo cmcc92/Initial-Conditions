@@ -7,7 +7,7 @@ c---------------------------------------------------------------------
 c                          Common Blocks
 c--------------------------------------------------------------------- 
        common/velocitycomm/gama,C_boltz,C_ava       
-       common/parkercomm/pi,Rss,r2,omega,phi
+       common/parkercomm/pi,Rss,r2,omega,phi2
 
 c---------------------------------------------------------------------
 c                        Reading Input File
@@ -87,24 +87,25 @@ c---------------------------------------------------------------------
 c---------------------------------------------------------------------
 c                         Calling Functions
 c---------------------------------------------------------------------
+       call v_sound(temp_sw,molarP,cs)
 
-       call v_sound(temp_sw,molarP,cs) 
-       
        cs_sw = cs
 
        call v_sound(temp_p,molar_mars,cs)
 
        cs_p = cs
-
-       call parker(orbit_theta,vrcgs,Bs0,Bx2,By2,Bz2)
        
-       Btot = sqrt(Bx2**2.0+By2**2.0+Bz2**2.0)
+       call parker(orbit_theta,vrcgs,Bs0,Bx2,By2,Bz2,Btot)
+       
 c---------------------------------------------------------------------
 c                          Print Statements
 c---------------------------------------------------------------------
 
-       print*, cs_sw
-       print*, cs_p
+       print*, "Sound Speed of Atmosphere = ", cs_sw
+       print*, "Sound Speed of Stellar Wind = ", cs_p
+       print*, "Stellar Wind B-Field at Planet", Bx2
+       print*, By2
+       print*, Bz2
        print*, Btot
 
        stop
@@ -115,26 +116,27 @@ c                             Functions
 c---------------------------------------------------------------------
        
        subroutine v_sound(t,m,cs)
-       implicit double precision (a-z)        
+       implicit double precision (a-z)
        common/velocitycomm/gama,C_boltz,C_ava
-       cs = sqrt(gama*C_boltz*C_ava*t/m)
+       cs  = sqrt(gama*C_boltz*C_ava*t/m)
        return
        end
 
-       subroutine parker(theta,v,B,Bx2,By2,Bz2)
+       subroutine parker(theta,v,B,Bx2,By2,Bz2,Btot)
        implicit double precision (a-z)
-       common/parkercomm/pi,Rss,r2,omega,phi
+       common/parkercomm/pi,Rss,r2,omega,phi2
        alpha = (90.0-theta)*pi/180.0
        theta2 = theta*pi/180.0 !convert to radians
-       Br = B*(Rss/r)**2.0
-       Bphi = (B(Rss/r2)**2.0*(r2-Rss))*omega*sin(theta2)/v
+       Br = B*(Rss/r2)**2.0
+       Bphi = B*(Rss/r2)**2.0*(r2-Rss)*omega*sin(theta2)/v
        Bx = Br*sin(theta2)*cos(phi)-(Bphi*sin(phi))
        By = Br*sin(theta2)*sin(phi)-(Bphi*cos(phi))
        Bz = Br*cos(theta2)
-       alpha2 = -alpha
-       Bx2 = cos(alpha2)*Bx-sin(alpha2)Bz
+       alpha2 = -1.0*alpha
+       Bx2 = cos(alpha2)*Bx-sin(alpha2)*Bz
        By2 = By
        Bz2 = sin(alpha2)*Bx2+cos(alpha2)*Bz
+       Btot = sqrt(Bx2**2 + By2**2 + Bz2**2)
        return
        end
 
