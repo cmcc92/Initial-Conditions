@@ -3,11 +3,38 @@
        
        implicit double precision (a-z)
 
+c---------------------------------------------------------------------
+c                            Constants
+c---------------------------------------------------------------------
+
+       parameter (pi = 3.14159265359d0 ) 
+       parameter (Rsun = 69.57d9) !cm
+       parameter (CG = 6.67259d-8) !gravitational constant, cgs
+       parameter (CMASS_EARTH = 5.972d27) !mass of earth, g
+       parameter (CRADIUS_EARTH = 637.1d6) !radius of earth, cm
+       parameter (CMP = 1.6726219d-24) !mass of proton, grams
+       parameter (mmmars = 43.34d0) !molar mass of Mars (g/mol)
+
+       parameter (CSOLARMASS_GRAM = 2.0d33) !solar mass to gram
+       parameter (CYEAR_SEC = 31557600.0) !year to second
+       parameter (CKM_CM = 1.0d05) !km to cm
+       parameter (CCM_KM = 1.0d-5) !cm to km
+       parameter (CAU_CM = 1.496d13) !AU to cm
+       parameter (CG_KG = 0.001) !gram to kg
+       
+       parameter (co_2 = 44.0) !amu/q
+       parameter (o_2 = 32.0) !amu/q
+       parameter (nco2 = 4.0E5) !cm-3
+       parameter (no2 = 3.6E6) !cm-3
+       parameter (mco2 = 7.3E-23) !g
+       parameter (mo2 = 5.3E-23) !g
+
 c--------------------------------------------------------------------- 
 c                          Common Blocks
 c--------------------------------------------------------------------- 
-       common/velocitycomm/gama,C_boltz,C_ava       
-       common/parkercomm/pi,Rss,r2,omega,phi2
+       
+       common/parkercomm/Rss,r2,omega,phi2
+       common/planetBcomm/chapman2,rplanet2,rho2
 
 c---------------------------------------------------------------------
 c                        Reading Input File
@@ -16,76 +43,44 @@ c---------------------------------------------------------------------
        open(unit=11,file='example.in',status='old')
        rewind 11
 
-       read (11,*) num
        read (11,*) vr
        read (11,*) orbit_theta
        read (11,*) n0
        read (11,*) Bs0
-
-c---------------------------------------------------------------------
-c                            Constants
-c---------------------------------------------------------------------
-
-       pi = 3.14159265359d0
-       Rsun = 69.57d9 !cm
-       CG = 6.67259d-8 !gravitational constant, cgs
-       CMASS_EARTH = 5.972d27 !mass of earth, g
-       CRADIUS_EARTH = 637.1d6 !radius of earth, cm
-       CMP = 1.6726219d-24 !mass of proton, grams
-       rplanet = 9556.5d0 !km
-       r = 1.0d0 !AU
-       phi = 0.0d0 !degree
-       Mdot = 4.0d-10 !solarmass/year
-       temp_sw = 10.0d6 !temp of stellar wind, k 
-       temp_p = 282.0d0 !temp of planet, K
-       molar_mars = 43.34d0 !g/mol
-       gama = 1.6666d0
-       C_boltz = 1.3806d-16 !cgs
-       C_ava = 6.022d23 !number/mol
-
-c--------------------------------------------------------------------- 
-c                       Conversion Constants
-c--------------------------------------------------------------------- 
-
-       CSOLARMASS_GRAM = 2.0d33 !solar mass to gram
-       CYEAR_SEC = 365.25d0*24*3600 !year to second
-       CKM_CM = 1000.0d0*100 !km to cm
-       CAU_CM = 1.496d13 !AU to cm
-       CCM_KM = 1.0d0/CKM_CM !cm to km
-       CG_KG = 0.001 !gram to kg
-
-c---------------------------------------------------------------------
-c                           Ionosphere
-c---------------------------------------------------------------------
-
-       chap_layer = 61.2*100*1000 !cm (from km)
-       co_2 = 44.0 !amu/q
-       o_2 = 32.0 !amu/q
-       nco2 = 4.0E5 !cm-3
-       no2 = 3.6E6 !cm-3
-       mco2 = 7.3E-23 !g
-       mo2 = 5.3E-23 !g
+       read (11,*) tempsw
+       read (11,*) tempp
+       read (11,*) chapman 
+       read (11,*) rorbit 
+       read (11,*) pmass
+       read (11,*) pradius
+       read (11,*) omega 
+       read (11,*) Mdot 
+       read (11,*) phi 
+       read (11,*) rstellar 
+       read (11,*) 
 
 c---------------------------------------------------------------------
 c                 Initial Conversion Calculations
 c---------------------------------------------------------------------
 
-       rplanet2 = rplanet*CKM_CM !km to cm 
-       gravity = CG*3.9*CMASS_EARTH/(1.5*CRADIUS_EARTH)**2.0 !cm/s^2
-       r2 = r*CAU_CM !cm
-       Rstar = 0.34*Rsun
+       chapman2 = chapman*CKM_CM !cm (from km)
+       rplanet = CRADIUS_EARTH*pradius !cm
+       gravity = CG*pmass*CMASS_EARTH/(pradius*CRADIUS_EARTH)**2.0 !cm/s^2
+       rorbit2 = rorbit*CAU_CM !cm
+       rstar = rstellar*Rsun
        Rss = 2.6*Rstar !standard: 5 & avg. 2.6
-       n_planet = n0*(Rss/r)**2.0 !num density of stellar wind at planet 
+       nsw = n0*(Rss/r)**2.0 !num density of stellar wind at planet 
        Mdot2 = Mdot*CSOLARMASS_GRAM/CYEAR_SEC !gram/s
-       vrcgs = vr*CKM_CM !cm/s
+       vr2 = vr*CKM_CM !cm/s
        phi2 = phi*pi/180.0
-       omega = 0.44/(24*3600) !s^-1
-       planet_rho = nco2*mco2 + no2*mo2
-       molarP = CMP*C_ava
-       molar_atmosphere = molar_mars
+       omega2 = omega/(24*3600) !s^-1
+       rhosw = nsw*CMP !mass density of stellar wind at planet
+       rhop = nco2*mco2 + no2*mo2 !mass density of atmosphere
+       mmp = CMP*C_ava !molar mass of proton
+       mma = mmmars !molar mass of atmosphere
        
 c---------------------------------------------------------------------
-c                         Calling Functions
+c                        Calling Subroutines
 c---------------------------------------------------------------------
        call v_sound(temp_sw,molarP,cs)
 
@@ -97,38 +92,48 @@ c---------------------------------------------------------------------
        
        call parker(orbit_theta,vrcgs,Bs0,Bx2,By2,Bz2,Btot)
        
+       temp = Btot
+
+       call planetBfield(vrcgs,temp,pBfield)
+
 c---------------------------------------------------------------------
 c                          Print Statements
 c---------------------------------------------------------------------
 
-       print*, "Sound Speed of Atmosphere = ", cs_sw
-       print*, "Sound Speed of Stellar Wind = ", cs_p
-       print*, "Stellar Wind B-Field at Planet", Bx2
+       print*, cs_sw
+       print*, cs_p
+       print*, Bx2
        print*, By2
        print*, Bz2
        print*, Btot
+       print*, pBfield
 
        stop
        end
 
 c---------------------------------------------------------------------
-c                             Functions
+c                           Subroutines
 c---------------------------------------------------------------------
        
        subroutine v_sound(t,m,cs)
        implicit double precision (a-z)
-       common/velocitycomm/gama,C_boltz,C_ava
-       cs  = sqrt(gama*C_boltz*C_ava*t/m)
+       parameter (C_boltz = 1.3806d-16) !cgs
+       parameter (C_ava = 6.022d23) !number/mol
+       parameter (gama = 1.666666) 
+       cs  = sqrt(gama*C_boltz*C_ava*t/m) 
        return
        end
 
+c---------------------------------------------------------------------
+
        subroutine parker(theta,v,B,Bx2,By2,Bz2,Btot)
        implicit double precision (a-z)
-       common/parkercomm/pi,Rss,r2,omega,phi2
+       parameter (pi = 3.14159265359d0 ) 
+       common/parkercomm/Rss,r2,omega2,phi2
        alpha = (90.0-theta)*pi/180.0
        theta2 = theta*pi/180.0 !convert to radians
        Br = B*(Rss/r2)**2.0
-       Bphi = B*(Rss/r2)**2.0*(r2-Rss)*omega*sin(theta2)/v
+       Bphi = B*(Rss/r2)**2.0*(r2-Rss)*omega2*sin(theta2)/v
        Bx = Br*sin(theta2)*cos(phi)-(Bphi*sin(phi))
        By = Br*sin(theta2)*sin(phi)-(Bphi*cos(phi))
        Bz = Br*cos(theta2)
@@ -140,11 +145,18 @@ c---------------------------------------------------------------------
        return
        end
 
+c---------------------------------------------------------------------
 
+       subroutine planetBfield(v,B,pBfield)
+       implicit double precision (a-z)
+       parameter (pi = 3.14159265359d0 ) 
+       common/planetBcomm/chapman2,rplanet2,rho2
+       Bp = (8.0*pi*(B**2.0/(8.0*pi)+0.5*rho2*v**2.0))**0.5
+       d = chapman2 + rplanet2
+       pBfield = Bp*((rplanet2/d)**3.0)
+       return
+       end
 
-
-
-
-
-
-
+c---------------------------------------------------------------------
+c                              End
+c---------------------------------------------------------------------
