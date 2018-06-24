@@ -12,3 +12,4 @@
 4.0d-10       !Mass loss rate of star to stellar wind (solarmass/year)
 0.0           !Keep zero
 0.34          !Star radius (Solar radii)
+2.6           !B-field source surface (solar radii)
