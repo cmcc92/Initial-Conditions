@@ -1,4 +1,4 @@
-# Initial-Conditions
+# M-dwarf Stellar Winds
 
 This repository is where I am developing the Fortran code to calculate
 all of the initial conditions for a large-scale simulation. 
